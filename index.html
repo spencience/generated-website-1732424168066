@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cat Chase - Yarn Collection Adventure</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<style>
+        .pixel-art {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        #game-container {
+            width: 800px;
+            height: 600px;
+            margin: 0 auto;
+            border: 4px solid #ffd700;
+            border-radius: 8px;
+        }
+
+        .cat-sprite {
+            width: 32px;
+            height: 32px;
+            background: #f4a460;
+            box-shadow: 
+                8px 8px 0 #8b4513,
+                24px 8px 0 #8b4513,
+                8px 16px 0 #d2691e,
+                16px 16px 0 #d2691e,
+                24px 16px 0 #d2691e,
+                8px 24px 0 #8b4513,
+                24px 24px 0 #8b4513;
+        }
+
+        .yarn-sprite {
+            width: 16px;
+            height: 16px;
+            background: #ff69b4;
+            border-radius: 50%;
+            box-shadow: 
+                4px 4px 0 #ff1493,
+                12px 4px 0 #ff1493;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<header class="bg-purple-600 text-white p-4">
+<nav class="container mx-auto flex justify-between items-center">
+<h1 class="text-2xl font-bold">
+<a href="https://spencience.com/games" class="hover:text-yellow-300">Spencience Games</a>
+</h1>
+<div class="space-x-4">
+<a href="https://spencience.com/games/leaderboard" class="hover:text-yellow-300">Leaderboard</a>
+<a href="https://spencience.com/games/collection" class="hover:text-yellow-300">Game Collection</a>
+<a href="https://spencience.com/account" class="hover:text-yellow-300">My Account</a>
+</div>
+</nav>
+</header>
+<main class="container mx-auto py-8">
+<div class="text-center mb-6">
+<h2 class="text-3xl font-bold text-purple-800">Cat Chase: Yarn Collection</h2>
+<p class="text-gray-600 mt-2">Help Pixel the Cat collect all the yarn balls!</p>
+</div>
+<div id="game-container" class="pixel-art">
+<canvas id="game"></canvas>
+</div>
+<div class="mt-6 text-center">
+<div class="bg-white p-4 rounded-lg shadow-md inline-block">
+<p class="font-bold text-purple-800">Controls:</p>
+<p class="text-gray-600">Arrow Keys or WASD to move</p>
+<p class="text-gray-600">Space to sprint</p>
+<p class="text-gray-600">P to pause</p>
+</div>
+</div>
+</main>
+<footer class="bg-purple-600 text-white p-4 mt-8">
+<div class="container mx-auto text-center">
+<p>© 2024 Spencience Games - 
+                <a href="https://spencience.com/privacy" class="hover:text-yellow-300">Privacy Policy</a> | 
+                <a href="https://spencience.com/terms" class="hover:text-yellow-300">Terms of Service</a>
+</p>
+</div>
+</footer>
+<script>
+const config = {
+    type: Phaser.AUTO,
+    parent: 'game-container',
+    width: 800,
+    height: 600,
+    pixelArt: true,
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 0 },
+            debug: false
+        }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+const game = new Phaser.Game(config);
+
+let player;
+let yarns;
+let cursors;
+let score = 0;
+let scoreText;
+let gameState = 'playing';
+
+function preload() {
+    // Create pixel art sprites programmatically
+    const catTexture = this.textures.createCanvas('cat', 32, 32);
+    const ctx = catTexture.getContext();
+    ctx.fillStyle = '#f4a460';
+    ctx.fillRect(8, 8, 16, 16);
+    ctx.fillStyle = '#8b4513';
+    ctx.fillRect(6, 6, 4, 4);
+    ctx.fillRect(22, 6, 4, 4);
+    catTexture.refresh();
+
+    const yarnTexture = this.textures.createCanvas('yarn', 16, 16);
+    const yarnCtx = yarnTexture.getContext();
+    yarnCtx.fillStyle = '#ff69b4';
+    yarnCtx.beginPath();
+    yarnCtx.arc(8, 8, 6, 0, Math.PI * 2);
+    yarnCtx.fill();
+    yarnTexture.refresh();
+}
+
+function create() {
+    player = this.physics.add.sprite(400, 300, 'cat');
+    player.setCollideWorldBounds(true);
+    
+    yarns = this.physics.add.group();
+    for(let i = 0; i < 10; i++) {
+        const x = Phaser.Math.Between(50, 750);
+        const y = Phaser.Math.Between(50, 550);
+        const yarn = yarns.create(x, y, 'yarn');
+        yarn.setCollideWorldBounds(true);
+    }
+
+    cursors = this.input.keyboard.createCursorKeys();
+    
+    scoreText = this.add.text(16, 16, 'Yarn: 0', { 
+        fontSize: '32px', 
+        fill: '#fff',
+        stroke: '#000',
+        strokeThickness: 4
+    });
+
+    this.physics.add.overlap(player, yarns, collectYarn, null, this);
+}
+
+function update() {
+    if (gameState !== 'playing') return;
+
+    const speed = cursors.space.isDown ? 200 : 160;
+
+    player.setVelocity(0);
+
+    if (cursors.left.isDown || this.input.keyboard.addKey('A').isDown) {
+        player.setVelocityX(-speed);
+    }
+    if (cursors.right.isDown || this.input.keyboard.addKey('D').isDown) {
+        player.setVelocityX(speed);
+    }
+    if (cursors.up.isDown || this.input.keyboard.addKey('W').isDown) {
+        player.setVelocityY(-speed);
+    }
+    if (cursors.down.isDown || this.input.keyboard.addKey('S').isDown) {
+        player.setVelocityY(speed);
+    }
+
+    if (this.input.keyboard.addKey('P').isDown) {
+        togglePause();
+    }
+}
+
+function collectYarn(player, yarn) {
+    yarn.destroy();
+    score += 1;
+    scoreText.setText('Yarn: ' + score);
+
+    if (score >= 10) {
+        gameWin();
+    }
+}
+
+function togglePause() {
+    if (gameState === 'playing') {
+        gameState = 'paused';
+        game.scene.pause();
+    } else {
+        gameState = 'playing';
+        game.scene.resume();
+    }
+}
+
+function gameWin() {
+    gameState = 'won';
+    const winText = this.add.text(400, 300, 'You Win!\nClick to restart', {
+        fontSize: '64px',
+        fill: '#fff',
+        stroke: '#000',
+        strokeThickness: 6,
+        align: 'center'
+    });
+    winText.setOrigin(0.5);
+    
+    this.input.on('pointerdown', () => {
+        score = 0;
+        gameState = 'playing';
+        this.scene.restart();
+    });
+}
+    </script>
+</body>
+</html>
+</body> and </html>
+</html>
+</body> and </html>
+</body> and </html>
+</body>
+</html>
+</body>
+</html>
+</body>
+</html>
+</body>
+</html>
