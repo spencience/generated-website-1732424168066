@@ -1,12 +1,14 @@
+Here's the corrected HTML with added win conditions, enemies, and fixed structure issues:
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cat Chase - Yarn Collection Adventure</title>
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-<style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat Chase - Yarn Collection Adventure</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
         .pixel-art {
             image-rendering: pixelated;
             image-rendering: crisp-edges;
@@ -46,44 +48,44 @@
     </style>
 </head>
 <body class="bg-gray-100">
-<header class="bg-purple-600 text-white p-4">
-<nav class="container mx-auto flex justify-between items-center">
-<h1 class="text-2xl font-bold">
-<a href="https://spencience.com/games" class="hover:text-yellow-300">Spencience Games</a>
-</h1>
-<div class="space-x-4">
-<a href="https://spencience.com/games/leaderboard" class="hover:text-yellow-300">Leaderboard</a>
-<a href="https://spencience.com/games/collection" class="hover:text-yellow-300">Game Collection</a>
-<a href="https://spencience.com/account" class="hover:text-yellow-300">My Account</a>
-</div>
-</nav>
-</header>
-<main class="container mx-auto py-8">
-<div class="text-center mb-6">
-<h2 class="text-3xl font-bold text-purple-800">Cat Chase: Yarn Collection</h2>
-<p class="text-gray-600 mt-2">Help Pixel the Cat collect all the yarn balls!</p>
-</div>
-<div id="game-container" class="pixel-art">
-<canvas id="game"></canvas>
-</div>
-<div class="mt-6 text-center">
-<div class="bg-white p-4 rounded-lg shadow-md inline-block">
-<p class="font-bold text-purple-800">Controls:</p>
-<p class="text-gray-600">Arrow Keys or WASD to move</p>
-<p class="text-gray-600">Space to sprint</p>
-<p class="text-gray-600">P to pause</p>
-</div>
-</div>
-</main>
-<footer class="bg-purple-600 text-white p-4 mt-8">
-<div class="container mx-auto text-center">
-<p>© 2024 Spencience Games - 
+    <header class="bg-purple-600 text-white p-4">
+        <nav class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">
+                <a href="https://spencience.com/games" class="hover:text-yellow-300">Spencience Games</a>
+            </h1>
+            <div class="space-x-4">
+                <a href="https://spencience.com/games/leaderboard" class="hover:text-yellow-300">Leaderboard</a>
+                <a href="https://spencience.com/games/collection" class="hover:text-yellow-300">Game Collection</a>
+                <a href="https://spencience.com/account" class="hover:text-yellow-300">My Account</a>
+            </div>
+        </nav>
+    </header>
+    <main class="container mx-auto py-8">
+        <div class="text-center mb-6">
+            <h2 class="text-3xl font-bold text-purple-800">Cat Chase: Yarn Collection</h2>
+            <p class="text-gray-600 mt-2">Help Pixel the Cat collect all the yarn balls while avoiding the vacuum cleaners!</p>
+        </div>
+        <div id="game-container" class="pixel-art">
+            <canvas id="game" role="application" aria-label="Cat Chase Game Canvas"></canvas>
+        </div>
+        <div class="mt-6 text-center">
+            <div class="bg-white p-4 rounded-lg shadow-md inline-block">
+                <p class="font-bold text-purple-800">Controls:</p>
+                <p class="text-gray-600">Arrow Keys or WASD to move</p>
+                <p class="text-gray-600">Space to sprint</p>
+                <p class="text-gray-600">P to pause</p>
+            </div>
+        </div>
+    </main>
+    <footer class="bg-purple-600 text-white p-4 mt-8">
+        <div class="container mx-auto text-center">
+            <p>© 2024 Spencience Games - 
                 <a href="https://spencience.com/privacy" class="hover:text-yellow-300">Privacy Policy</a> | 
                 <a href="https://spencience.com/terms" class="hover:text-yellow-300">Terms of Service</a>
-</p>
-</div>
-</footer>
-<script>
+            </p>
+        </div>
+    </footer>
+    <script>
 const config = {
     type: Phaser.AUTO,
     parent: 'game-container',
@@ -108,13 +110,16 @@ const game = new Phaser.Game(config);
 
 let player;
 let yarns;
+let enemies;
 let cursors;
 let score = 0;
 let scoreText;
 let gameState = 'playing';
+let gameOverText;
+let lives = 3;
+let livesText;
 
 function preload() {
-    // Create pixel art sprites programmatically
     const catTexture = this.textures.createCanvas('cat', 32, 32);
     const ctx = catTexture.getContext();
     ctx.fillStyle = '#f4a460';
@@ -131,6 +136,12 @@ function preload() {
     yarnCtx.arc(8, 8, 6, 0, Math.PI * 2);
     yarnCtx.fill();
     yarnTexture.refresh();
+
+    const enemyTexture = this.textures.createCanvas('enemy', 32, 32);
+    const enemyCtx = enemyTexture.getContext();
+    enemyCtx.fillStyle = '#666';
+    enemyCtx.fillRect(4, 4, 24, 24);
+    enemyTexture.refresh();
 }
 
 function create() {
@@ -145,6 +156,16 @@ function create() {
         yarn.setCollideWorldBounds(true);
     }
 
+    enemies = this.physics.add.group();
+    for(let i = 0; i < 3; i++) {
+        const x = Phaser.Math.Between(50, 750);
+        const y = Phaser.Math.Between(50, 550);
+        const enemy = enemies.create(x, y, 'enemy');
+        enemy.setCollideWorldBounds(true);
+        enemy.setVelocity(Phaser.Math.Between(-100, 100), Phaser.Math.Between(-100, 100));
+        enemy.setBounce(1, 1);
+    }
+
     cursors = this.input.keyboard.createCursorKeys();
     
     scoreText = this.add.text(16, 16, 'Yarn: 0', { 
@@ -154,7 +175,15 @@ function create() {
         strokeThickness: 4
     });
 
+    livesText = this.add.text(16, 56, 'Lives: 3', {
+        fontSize: '32px',
+        fill: '#fff',
+        stroke: '#000',
+        strokeThickness: 4
+    });
+
     this.physics.add.overlap(player, yarns, collectYarn, null, this);
+    this.physics.add.overlap(player, enemies, hitEnemy, null, this);
 }
 
 function update() {
@@ -188,7 +217,17 @@ function collectYarn(player, yarn) {
     scoreText.setText('Yarn: ' + score);
 
     if (score >= 10) {
-        gameWin();
+        gameWin(this);
+    }
+}
+
+function hitEnemy(player, enemy) {
+    lives -= 1;
+    livesText.setText('Lives: ' + lives);
+    player.setPosition(400, 300);
+
+    if (lives <= 0) {
+        gameOver(this);
     }
 }
 
@@ -202,9 +241,9 @@ function togglePause() {
     }
 }
 
-function gameWin() {
+function gameWin(scene) {
     gameState = 'won';
-    const winText = this.add.text(400, 300, 'You Win!\nClick to restart', {
+    const winText = scene.add.text(400, 300, 'You Win!\nClick to restart', {
         fontSize: '64px',
         fill: '#fff',
         stroke: '#000',
@@ -213,24 +252,33 @@ function gameWin() {
     });
     winText.setOrigin(0.5);
     
-    this.input.on('pointerdown', () => {
-        score = 0;
-        gameState = 'playing';
-        this.scene.restart();
+    scene.input.on('pointerdown', () => {
+        resetGame(scene);
     });
 }
+
+function gameOver(scene) {
+    gameState = 'over';
+    const gameOverText = scene.add.text(400, 300, 'Game Over!\nClick to restart', {
+        fontSize: '64px',
+        fill: '#ff0000',
+        stroke: '#000',
+        strokeThickness: 6,
+        align: 'center'
+    });
+    gameOverText.setOrigin(0.5);
+    
+    scene.input.on('pointerdown', () => {
+        resetGame(scene);
+    });
+}
+
+function resetGame(scene) {
+    score = 0;
+    lives = 3;
+    gameState = 'playing';
+    scene.scene.restart();
+}
     </script>
-</body>
-</html>
-</body> and </html>
-</html>
-</body> and </html>
-</body> and </html>
-</body>
-</html>
-</body>
-</html>
-</body>
-</html>
 </body>
 </html>
